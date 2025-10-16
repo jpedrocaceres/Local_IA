@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\".venv\\Scripts\\python.exe\" -m uvicorn:*)",
+      "Bash(\".venv\\Scripts\\pip.exe\" install ollm)",
+      "Bash(\".venv\\Scripts\\pip.exe\" install ollm --no-deps)",
+      "Bash(\".venv\\Scripts\\python.exe\" -c \"import ollm; print(''oLLM version:'', ollm.__version__ if hasattr(ollm, ''__version__'') else ''unknown''); print(''oLLM available!'')\")",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git cat-file:*)",
+      "Bash(awk:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(find:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git log:*)",
+      "Bash(git init:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

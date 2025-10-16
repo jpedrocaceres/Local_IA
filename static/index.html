@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Assistente IA Pantanal Agrícola - Inteligência Artificial para o Agronegócio">
+    <title>Pantanal Agrícola IA | Assistente Inteligente</title>
+    <link rel="stylesheet" href="/static/css/pantanal-theme.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Pantanal Agrícola IA</h1>
+            <p>Inteligência Artificial para o Agronegócio</p>
+            <div id="modelStatus" class="model-status"></div>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-area">
+                <!-- File Upload Area -->
+                <div id="fileArea" class="file-area" style="display: none;">
+                    <div class="file-info">
+                        <span id="fileName">Nenhum arquivo carregado</span>
+                        <button id="removeFileBtn" class="btn-remove" style="display: none;">✖</button>
+                    </div>
+                </div>
+
+                <div id="chatMessages" class="chat-messages">
+                    <div class="message assistant">
+                        <div class="message-header">
+                            <strong>🌾 Assistente Pantanal</strong>
+                            <span class="timestamp"></span>
+                        </div>
+                        <div class="message-content">
+                            Olá! Sou o assistente inteligente da Pantanal Agrícola, alimentado pelo Llama 3.1 8B.
+
+Estou aqui para ajudar você com informações sobre agricultura, agronegócio e tecnologia. Você também pode enviar arquivos (PDF, Word, Excel, CSV, TXT) para que eu possa analisá-los e responder suas perguntas sobre o conteúdo!
+
+Como posso auxiliar você hoje?
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="chat-input">
+                        <input type="file" id="fileInput" style="display: none;" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json,.xml,.html,.py,.js,.java,.cpp,.c,.h">
+                        <button class="btn btn-secondary" id="uploadBtn" aria-label="Anexar arquivo" title="Anexar arquivo">
+                            📎
+                        </button>
+                        <textarea
+                            id="messageInput"
+                            placeholder="Faça sua pergunta sobre agricultura..."
+                            rows="1"
+                            aria-label="Digite sua mensagem"
+                        ></textarea>
+                        <button class="btn btn-secondary" id="clearBtn" aria-label="Limpar conversa" title="Limpar histórico da conversa">
+                            🔄
+                        </button>
+                        <button class="btn btn-primary" id="sendBtn" aria-label="Enviar mensagem">
+                            <span>Enviar</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const fileArea = document.getElementById('fileArea');
+        const fileName = document.getElementById('fileName');
+        const removeFileBtn = document.getElementById('removeFileBtn');
+        const modelStatus = document.getElementById('modelStatus');
+
+        // Conversation history and file context
+        let conversationHistory = [];
+        let currentFile = null;
+
+        // Auto-resize textarea com animação suave
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkHealth();
+            messageInput.focus();
+
+            // Animação de entrada suave
+            setTimeout(() => {
+                document.querySelector('.chat-area').style.opacity = '1';
+            }, 100);
+        });
+
+        // Chat handling
+        sendBtn.addEventListener('click', sendMessage);
+        clearBtn.addEventListener('click', clearConversation);
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileUpload);
+        removeFileBtn.addEventListener('click', removeFile);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat and history
+            addMessage(message, 'user');
+            conversationHistory.push({ role: 'user', content: message });
+
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+
+            // Disable send button e mostrar loading
+            sendBtn.disabled = true;
+            sendBtn.classList.add('loading');
+            const originalContent = sendBtn.innerHTML;
+            sendBtn.innerHTML = '<div class="spinner"></div>';
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        history: conversationHistory.slice(0, -1), // Envia histórico sem a mensagem atual
+                        file_context: currentFile // Envia nome do arquivo para contexto
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    addMessage(result.response, 'assistant');
+                    // Add assistant response to history
+                    conversationHistory.push({ role: 'assistant', content: result.response });
+                } else {
+                    addMessage('Desculpe, ocorreu um erro ao processar sua mensagem. ' +
+                              (result.response || result.detail || 'Por favor, tente novamente.'),
+                              'assistant', true);
+                }
+            } catch (error) {
+                addMessage('Erro de conexão com o servidor. Verifique sua conexão e tente novamente.',
+                          'assistant', true);
+                console.error('Erro:', error);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.classList.remove('loading');
+                sendBtn.innerHTML = originalContent;
+                messageInput.focus();
+            }
+        }
+
+        function addMessage(content, sender, isError = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}${isError ? ' error' : ''}`;
+
+            const timestamp = new Date().toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const icon = sender === 'user' ? '👤' : '🌾';
+            const label = sender === 'user' ? 'Você' : 'Assistente Pantanal';
+
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <strong>${icon} ${label}</strong>
+                    <span class="timestamp">${timestamp}</span>
+                </div>
+                <div class="message-content">${escapeHtml(content)}</div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+
+            // Smooth scroll para a última mensagem
+            setTimeout(() => {
+                chatMessages.scrollTo({
+                    top: chatMessages.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = '⏳';
+
+                const response = await fetch('/api/upload-file', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    currentFile = result.filename;
+                    fileName.textContent = `📄 ${result.filename}`;
+                    fileArea.style.display = 'block';
+                    removeFileBtn.style.display = 'inline-block';
+
+                    addMessage(`Arquivo '${result.filename}' carregado com sucesso!\n\n${result.message}\n\nPré-visualização:\n${result.content_preview}`, 'assistant');
+                } else {
+                    addMessage(`Erro ao carregar arquivo: ${result.detail || result.message}`, 'assistant', true);
+                }
+            } catch (error) {
+                addMessage(`Erro ao enviar arquivo: ${error.message}`, 'assistant', true);
+                console.error('Upload error:', error);
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '📎';
+                fileInput.value = ''; // Reset file input
+            }
+        }
+
+        function removeFile() {
+            currentFile = null;
+            fileName.textContent = 'Nenhum arquivo carregado';
+            fileArea.style.display = 'none';
+            removeFileBtn.style.display = 'none';
+            addMessage('Arquivo removido do contexto.', 'assistant');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        function clearConversation() {
+            if (confirm('Deseja limpar o histórico da conversa? Isso iniciará uma nova conversa do zero.')) {
+                conversationHistory = [];
+                // Remove todas as mensagens exceto a mensagem inicial do assistente
+                const messages = chatMessages.querySelectorAll('.message');
+                messages.forEach((msg, index) => {
+                    if (index > 0) { // Mantém apenas a primeira mensagem (boas-vindas)
+                        msg.remove();
+                    }
+                });
+                messageInput.focus();
+                console.log('Histórico de conversa limpo');
+            }
+        }
+
+        async function checkHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const result = await response.json();
+
+                if (result.status === 'error') {
+                    showModelStatus(`❌ Erro: ${result.error}`, 'error');
+                    return;
+                }
+
+                let statusHtml = '<div class="status-items">';
+
+                // Model status
+                if (result.model_loaded) {
+                    const modelType = result.model_type === 'ollama' ? 'Ollama' :
+                                     result.model_type === 'huggingface' ? 'HuggingFace' :
+                                     result.model_type === 'gguf' ? 'GGUF' : 'Desconhecido';
+                    statusHtml += `<div class="status-item success">✅ Llama 3.1 8B (${modelType})</div>`;
+                } else {
+                    statusHtml += '<div class="status-item warning">⚠️ Carregando modelo...</div>';
+                }
+
+                // GPU info
+                if (result.gpu_info) {
+                    statusHtml += `<div class="status-item">🎮 ${result.gpu_info.device_name}</div>`;
+                    statusHtml += `<div class="status-item">💾 ${result.gpu_info.memory_allocated} / ${result.gpu_info.memory_total}</div>`;
+                }
+
+                // Mode
+                if (result.mode === 'GPU_ONLY') {
+                    statusHtml += `<div class="status-item">⚡ Modo GPU</div>`;
+                }
+
+                statusHtml += '</div>';
+                modelStatus.innerHTML = statusHtml;
+
+            } catch (error) {
+                showModelStatus('❌ Não foi possível conectar ao servidor', 'error');
+                console.error('Health check error:', error);
+            }
+        }
+
+        function showModelStatus(message, type = 'info') {
+            modelStatus.innerHTML = `<div class="status-item ${type}">${message}</div>`;
+        }
+
+        // Atualizar status a cada 30 segundos
+        setInterval(checkHealth, 30000);
+
+        // Adicionar efeito de digitação (opcional)
+        let typingTimeout;
+        messageInput.addEventListener('input', () => {
+            clearTimeout(typingTimeout);
+            // Aqui você pode adicionar um indicador de "digitando..." se quiser
+        });
+    </script>
+</body>
+</html>

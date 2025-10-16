@@ -1,0 +1,21 @@
+{
+  "selected_model": "llama3.1",
+  "models": {
+    "llama3.1": {
+      "name": "Llama 3.1 8B",
+      "type": "llama",
+      "description": "Meta's Llama 3.1 8B Instruct model for general chat and instruction following",
+      "size": "~16GB (FP16)",
+      "min_vram": "8GB",
+      "recommended_vram": "16GB"
+    },
+    "trm": {
+      "name": "TRM (Tiny Recursive Models)",
+      "type": "trm",
+      "description": "Samsung's 7M parameter recursive model for reasoning tasks (ARC-AGI, Sudoku, Mazes)",
+      "size": "~28MB",
+      "min_vram": "2GB",
+      "recommended_vram": "4GB"
+    }
+  }
+}

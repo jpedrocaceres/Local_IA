@@ -1,0 +1,45 @@
+# Core Dependencies
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+pydantic>=2.0.0
+
+# LLaMA Model Dependencies
+transformers>=4.30.0
+torch>=2.0.0
+accelerate>=0.20.0
+huggingface-hub>=0.17.0
+safetensors>=0.4.0
+tokenizers>=0.13.0
+
+# MCP (Model Context Protocol)
+mcp>=0.9.0
+httpx>=0.24.0
+python-dotenv>=1.0.0
+
+# Optional Performance Optimizations
+bitsandbytes>=0.41.0  # For quantization (required for 4-bit/8-bit models)
+# llama-cpp-python>=0.2.0  # For faster inference (uncomment if needed)
+
+# Utilities
+requests>=2.28.0
+tqdm>=4.65.0
+python-multipart>=0.0.6  # For file uploads
+
+# Document Processing
+PyPDF2>=3.0.0  # For PDF files
+python-docx>=0.8.11  # For Word documents
+pandas>=2.0.0  # For CSV and data processing
+
+# TRM (Tiny Recursive Models) - Optional
+einops  # For tensor operations
+coolname  # For experiment naming
+argdantic  # For argument parsing
+omegaconf  # For configuration management
+hydra-core  # For hierarchical configuration
+numba  # For performance optimization
+adam-atan2  # For TRM optimizer
+
+# RAG with pgvector
+psycopg2-binary>=2.9.0  # PostgreSQL adapter
+pgvector>=0.2.0  # pgvector support
+sentence-transformers>=2.2.0  # For embeddings
